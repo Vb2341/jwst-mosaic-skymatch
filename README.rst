@@ -1,30 +1,34 @@
-STScI Package Template
+jwst-mosaic-skymatch
 ======================
 
-.. image:: https://readthedocs.org/projects/stsci-package-template/badge/?version=latest
-    :target: https://stsci-package-template.readthedocs.io/en/latest/?badge=latest
-    :alt: Documentation Status
+This package contains tools for improving the background matching for JWST
+pipeline produced mosaics.  Currently, it contains a single tool to optimize
+sky matching for MIRI image data, as the current default pipeline often
+produces level 3 products with discontinuities/artificial gradients in the
+background.
 
-.. image:: https://github.com/spacetelescope/stsci-package-template/workflows/CI/badge.svg
-    :target: https://github.com/spacetelescope/stsci-package-template/actions
-    :alt: GitHub Actions CI Status
+Specifically, this package contains a replacement step for the `SkyMatchStep`
+of the official JWST pipeline.  The replacing step, `PixelSkyMatchStep`, first
+groups all of the exposures by their visit ID's (as images in the same visits
+tend to overlap).  For each group of exposures, the exposures are drizzled
+(resampled) together but projectedto the same pixel grid for all the groups.
+This allows for offsets in the background to be calculated per pixel, leading
+to better measurements of background offsets.  These calculated offsets are
+then placed back into the exposure metadata, and so the data can be processed
+through the remaining pipeline steps (outlier detection and resample) as
+usual.
 
-.. image:: https://codecov.io/gh/spacetelescope/stsci-package-template/branch/main/graph/badge.svg
-    :target: https://codecov.io/gh/spacetelescope/stsci-package-template
-    :alt: Coverage Status
-
-.. image:: http://img.shields.io/badge/powered%20by-AstroPy-orange.svg?style=flat
-    :target: http://www.astropy.org
-    :alt: Powered by Astropy Badge
-
-To use this package template, see instructions for
-`GitHub's creating a repository from a template <https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template>`_.
-
-After you have created your new repository from this template,
-please go through all the files in your new repository carefully
-and customize it as you see fit. Please also refer to
-`STScI style guides <https://github.com/spacetelescope/style-guides>`_.
-
+Caveats:
+*This algorithm requires the exposures to be aligned to well within a pixel, or
+the calculated background offsets will be incorrect.
+*This replacement step does not yet support all of the different options as
+seen in the default pipeline step.  It currently only replaces the case in which
+the sky is desired to be matched (i.e. `skymethod='match'`), though the
+global+match method will likely be implemented in the future.
+*Only a few dither strategies have been tested with this algorithm, and so other
+dither combinations may not see much improvement (TBD).
+*This is really only meant for MIRI imaging data.  Other instruments may not
+work.
 
 License
 -------
@@ -35,7 +39,7 @@ See `LICENSE.rst` for more information.
 Contributing
 ------------
 
-We love contributions! `packagename` is open source,
+We love contributions! `jwst-mosaic-skymatch` is open source,
 built on open source, and we'd love to have you hang out in our community.
 
 **Imposter syndrome disclaimer**: We want your help. No, really.

@@ -1,3 +1,21 @@
+[project]
+name = "jwst-mosaic-skymatch"
+version = "0.1"
+description = "A replacement pipeline step for MIRI sky matching"
+readme = "README.rst"
+authors = [
+    { name = "Varun Bajaj", email = "vbajaj@stsci.edu" }
+]
+license = { text = "BSD 3-Clause License" }
+dependencies = [
+    "jwst~=1.11.4",
+    "toml"
+]
+
+
+[project.urls]
+homepage = "https://github.com/Vb2341/jwst-mosaic-skymatch"
+
 [build-system]
 requires = ["setuptools",
             "setuptools_scm",

@@ -14,6 +14,7 @@
 
 import datetime
 import os
+import toml
 from configparser import ConfigParser
 from pkg_resources import get_distribution
 
@@ -25,9 +26,10 @@ def setup(app):
 
 
 # -- General configuration ------------------------------------------------
-conf = ConfigParser()
-conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
-setup_cfg = dict(conf.items('metadata'))
+# conf = ConfigParser()
+# conf.read([os.path.join(os.path.dirname(__file__), '..', 'setup.cfg')])
+# setup_cfg = dict(conf.items('metadata'))
+setup_cfg = toml.load(os.path.join(os.path.dirname(__file__), '..', 'pyproject.toml'))
 
 # Configuration for intersphinx: refer to the Python standard library.
 # Uncomment if you cross-ref to API doc from other packages.
@@ -68,8 +70,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project
-project = setup_cfg['name']
-author = setup_cfg['author']
+project = setup_cfg['project']['name']
+author = setup_cfg['project']['authors'][0]['name']
 year = datetime.datetime.now().year
 copyright = f'{year}, {author}'
 
@@ -78,7 +80,7 @@ copyright = f'{year}, {author}'
 # build documents.
 #
 # The full version, including alpha/beta/rc tags.
-release = get_distribution(project).version
+release = setup_cfg['project']['version']
 # The short X.Y version.
 version = '.'.join(release.split('.')[:2])
 
