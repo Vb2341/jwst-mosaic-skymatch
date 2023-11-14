@@ -9,3 +9,4 @@ except PackageNotFoundError:
 
 # Expose subpackage API at package level.
 from .pixel_skymatch_step import PixelSkyMatchStep
+from .nircam_skymatch_trick import UngroupedSkyMatchStep

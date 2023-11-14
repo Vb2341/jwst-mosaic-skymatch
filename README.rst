@@ -1,6 +1,10 @@
 jwst-mosaic-skymatch
 ======================
 
+**NOTE**: Currently, the documentation for this package isn't rendering quite
+right.  However, a notebook is provided that discusses the usage and technical
+workings of this code, so we recommend using that in the mean time!
+
 This package contains tools for improving the background matching for JWST
 pipeline produced mosaics.  Currently, it contains a single tool to optimize
 sky matching for MIRI image data, as the current default pipeline often

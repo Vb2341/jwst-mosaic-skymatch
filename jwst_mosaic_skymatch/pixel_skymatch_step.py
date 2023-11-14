@@ -30,15 +30,17 @@ class PixelSkyMatchStep(Step):
 
     spec = """
         # General sky matching parameters:
-        skymethod = option('match', 'global+match', default='match') # sky computation method
+        skymethod = option('match', 'global+match', default='match') # sky computation method, more methods coming soon
         match_down = boolean(default=True) # adjust sky to lowest measured value?
         subtract = boolean(default=False) # subtract computed sky from image data?
-
+        weight = boolean(default=True) # Weight the tile offsets by overlap?
+        grouping = option('visit', None, default='visit')
 
         # Sky statistics parameters:
         skystat = option('median', 'midpt', 'mean', 'mode', default='median') # sky statistics
         lsigma = float(min=0.0, default=2.0) # Lower clipping limit, in sigma
         usigma = float(min=0.0, default=2.0) # Upper clipping limit, in sigma
+        nclip = integer(min=0, default=5) # number of sky clipping iterations
         binwidth = float(min=0.0, default=0.1) # Bin width for 'mode' and 'midpt' `skystat`, in sigma
     """
 
@@ -46,6 +48,8 @@ class PixelSkyMatchStep(Step):
 
     def process(self, input):
         self.log.setLevel(logging.DEBUG)
+        if self.skymethod != 'match':
+            raise NotImplementedError('Other sky methods are not implemented yet, but are coming soon.')
 
         # img = ModelContainer(
         #     input,
@@ -60,11 +64,11 @@ class PixelSkyMatchStep(Step):
         pupil = img[0].meta.instrument.pupil
         det = img[0].meta.instrument.detector
 
-        if hasattr(img, 'asn_table_name'):
+        if hasattr(img, 'asn_table_name') and img.asn_table_name:
             aname = img.asn_table_name
             pname = '_'.join(aname.split('_')[:-1])
-        elif hasattr(derp.meta, 'filename'):
-            aname = derp.meta.filename
+        elif hasattr(img.meta, 'filename') and img.meta.filename:
+            aname = img.meta.filename
             pname = '_'.join(aname.split('_')[:-1])
         else:
             if pupil:
@@ -85,7 +89,10 @@ class PixelSkyMatchStep(Step):
         wcs_file.write_to(fo)
         fo.close()
 
-        mcs = self.group_exps_by_visit(img)
+        if self.grouping == 'visit':
+            mcs = self.group_exps_by_visit(img)
+        elif self.grouping is None:
+            mcs = [ModelContainer([im]) for im in img]
 
         # Drizzle each tile and store the results
         tiles = []
@@ -102,8 +109,13 @@ class PixelSkyMatchStep(Step):
         )
 
         # Create matrices and perform least squares regression to find tile backgrounds
-        equations, pdiffs = self._create_matrix(tiles)
-        lres = np.linalg.lstsq(equations, pdiffs)
+        equations, pdiffs, overlaps = self._create_matrix(tiles)
+        if self.weight:
+            W = np.sqrt(np.diag(overlaps/np.mean(overlaps)))
+            equations = np.dot(W, equations)
+            pdiffs = np.dot(pdiffs, W)
+        lres = np.linalg.lstsq(equations, pdiffs, rcond=1.0E-12)
+        # print(lres)
         tile_bgs = lres[0]
 
         # Adjust background levels to start from zero
@@ -219,6 +231,8 @@ class PixelSkyMatchStep(Step):
           combined with the `tile_bg` value to create the 'MATCHEDBG' column in the result.
         """
         hdrtab = Table(tile.hdrtab)
+        nanmask = np.isnan(hdrtab['BKGLEVEL'])
+        hdrtab['BKGLEVEL'] = 0.
         hdrtab['MATCHEDBG'] = hdrtab['BKGLEVEL'] + tile_bg
         return hdrtab['FILENAME', 'MATCHEDBG']
 
@@ -319,7 +333,7 @@ class PixelSkyMatchStep(Step):
                     row[i] = 1.
                     row[j] = -1.
                     eqns.append(row)
-        return np.array(eqns), np.array(pdiffs)
+        return np.array(eqns), np.array(pdiffs), np.array(true_overlap)
 
     def _set_sky_levels(self, img, bg_dict):
         """Puts the new sky value in the metadata, subtracts sky if set"""
