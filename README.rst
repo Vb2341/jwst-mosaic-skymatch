@@ -23,16 +23,11 @@ through the remaining pipeline steps (outlier detection and resample) as
 usual.
 
 Caveats:
-*This algorithm requires the exposures to be aligned to well within a pixel, or
-the calculated background offsets will be incorrect.
-*This replacement step does not yet support all of the different options as
-seen in the default pipeline step.  It currently only replaces the case in which
-the sky is desired to be matched (i.e. `skymethod='match'`), though the
-global+match method will likely be implemented in the future.
-*Only a few dither strategies have been tested with this algorithm, and so other
-dither combinations may not see much improvement (TBD).
-*This is really only meant for MIRI imaging data.  Other instruments may not
-work.
+
+* This algorithm requires the exposures to be aligned to well within a pixel, or the calculated background offsets will be incorrect.
+* This replacement step does not yet support all of the different options as seen in the default pipeline step.  It currently only replaces the case in which the sky is desired to be matched (i.e. `skymethod='match'`), though the global+match method will likely be implemented in the future.
+* Only a few dither strategies have been tested with this algorithm, and so other dither combinations may not see much improvement (TBD).
+* This is really only meant for MIRI imaging data.  Other instruments may not work.
 
 License
 -------
