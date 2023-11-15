@@ -23,4 +23,4 @@ requires = ["setuptools",
 build-backend = "setuptools.build_meta"
 
 [project.optional-dependencies]
-docs = ['stsci-rtd-theme']
+docs = ['stsci-rtd-theme', 'sphinx-automodapi']
