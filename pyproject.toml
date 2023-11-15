@@ -21,3 +21,6 @@ requires = ["setuptools",
             "setuptools_scm",
             "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project.optional-dependencies]
+docs = ['stsci-rtd-theme']
