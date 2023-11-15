@@ -1,24 +1,16 @@
-# Read the Docs configuration file
-# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
 version: 2
 
-sphinx:
-  builder: html
-  configuration: docs/conf.py
-  fail_on_warning: true
+build:
+  os: ubuntu-20.04
+  tools:
+    python: '3.9'
 
-# Set the version of Python and requirements required to build your docs
 python:
-  version: 3.9
-  system_packages: true
   install:
     - method: pip
       path: .
       extra_requirements:
         - docs
+        - all
 
-build:
-  os: ubuntu-20.04
-
-# Don't build any extra formats
 formats: []
