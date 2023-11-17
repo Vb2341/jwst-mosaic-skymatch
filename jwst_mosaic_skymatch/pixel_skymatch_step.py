@@ -35,7 +35,7 @@ class PixelSkyMatchStep(Step):
         match_down = boolean(default=True) # adjust sky to lowest measured value?
         subtract = boolean(default=False) # subtract computed sky from image data?
         weight = boolean(default=True) # Weight the tile offsets by overlap?
-        grouping = option('visit', None, default='visit')
+        grouping = option('visit', None, default='None')
 
         # Sky statistics parameters:
         skystat = option('median', 'midpt', 'mean', 'mode', default='median') # sky statistics
