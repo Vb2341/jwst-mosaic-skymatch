@@ -17,6 +17,7 @@ from jwst.datamodels import ModelContainer
 from jwst.pipeline import calwebb_image3
 from jwst.resample import resample_utils
 from jwst.skymatch.skystatistics import SkyStats
+from multiprocessing import Pool, cpu_count
 
 from astropy.table import Table, vstack
 from scipy.stats import sigmaclip
@@ -42,6 +43,9 @@ class PixelSkyMatchStep(Step):
         usigma = float(min=0.0, default=2.0) # Upper clipping limit, in sigma
         nclip = integer(min=0, default=5) # number of sky clipping iterations
         binwidth = float(min=0.0, default=0.1) # Bin width for 'mode' and 'midpt' `skystat`, in sigma
+
+        # Other parameters
+        save_tiles = boolean(default=False) # Save the drizzled images for each tile?
     """
 
     reference_file_types = []
@@ -51,6 +55,7 @@ class PixelSkyMatchStep(Step):
         if self.skymethod != 'match':
             raise NotImplementedError('Other sky methods are not implemented yet, but are coming soon.')
 
+        # I don't understand what this does, but it's probably important
         # img = ModelContainer(
         #     input,
         #     save_open=not self._is_asn,
@@ -95,10 +100,22 @@ class PixelSkyMatchStep(Step):
             mcs = [ModelContainer([im]) for im in img]
 
         # Drizzle each tile and store the results
-        tiles = []
+
         for i, mc in enumerate(mcs):
             mc.meta.filename = f'tile{i}_{pname}'
-            tiles.append(self.driz_tile(mc))
+        tiles = [self.driz_tile(mc) for mc in mcs]
+
+        # No dreams of multiprocessing with Pool unless you can pickle datamodels
+        # if self.n_process == 1:
+        #     tiles = [self.driz_tile(mc) for mc in mcs]
+        # else:
+        #     if self.n_process == 0:
+        #         n_cpu = min(cpu_count(), len(mcs))
+        #     else:
+        #         n_cpu = self.n_process
+        #
+        #     with Pool(n_cpu) as p:
+        #         p.map(self.driz_tile, mcs)
 
         self._skystat = SkyStats(
             skystat=self.skystat,
@@ -193,7 +210,9 @@ class PixelSkyMatchStep(Step):
 
         im3.resample.kernel = 'square'
         im3.resample.weight_type = 'exptime'
-        im3.resample.save_results = False
+        im3.resample.save_results = self.save_tiles
+        if self.save_tiles:
+            im3.resample.output_file = f'{mc.meta.filename}_i2d.fits'
 
         # Run the skymatch step
         mc = im3.skymatch.run(mc)
@@ -231,8 +250,12 @@ class PixelSkyMatchStep(Step):
           combined with the `tile_bg` value to create the 'MATCHEDBG' column in the result.
         """
         hdrtab = Table(tile.hdrtab)
+
+        if 'BKGLEVEL' not in hdrtab.colnames:
+            hdrtab['BKGLEVEL'] = 0.
+
         nanmask = np.isnan(hdrtab['BKGLEVEL'])
-        hdrtab['BKGLEVEL'] = 0.
+        hdrtab['BKGLEVEL'][nanmask] = 0.
         hdrtab['MATCHEDBG'] = hdrtab['BKGLEVEL'] + tile_bg
         return hdrtab['FILENAME', 'MATCHEDBG']
 
@@ -262,14 +285,19 @@ class PixelSkyMatchStep(Step):
         - Each resulting ModelContainer contains data from a single observation visit.
         """
         all_visits = [im.meta.observation.visit_id for im in input]
+        all_dets = [im.meta.instrument.detector for im in input]
         visits = sorted(list(set(all_visits)))
+        dets = sorted(list(set(all_dets)))
         mclist = []
 
         for visit in visits:
             # Create a list of images for the current visit
             visit_images = [im for im in input if im.meta.observation.visit_id == visit]
-            # Create a ModelContainer for the current visit and append it to mclist
-            mclist.append(ModelContainer(visit_images))
+            for det in dets:
+                det_images = [im for im in visit_images if im.meta.instrument.detector == det]
+                # Create a ModelContainer for the current visit/detector and append it to mclist
+                if det_images:
+                    mclist.append(ModelContainer(det_images))
 
         return mclist
 
