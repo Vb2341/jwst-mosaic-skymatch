@@ -96,8 +96,9 @@ class PixelSkyMatchStep(Step):
 
         if self.grouping == 'visit':
             mcs = self.group_exps_by_visit(img)
-        elif self.grouping is None:
+        else:
             mcs = [ModelContainer([im]) for im in img]
+
 
         # Drizzle each tile and store the results
 
